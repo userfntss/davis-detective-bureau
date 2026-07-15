@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Davis Detective Bureau — Generador de Informes</title>
+<link rel="icon" type="image/png" href="https://i.imgur.com/kMtn1Kc.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#121112;
+    --panel:#1a1819;
+    --panel-2:#201d1e;
+    --line:#332d2b;
+    --gold:#c8973f;
+    --gold-dim:#7a6535;
+    --ink:#ece6db;
+    --ink-dim:#a89c8a;
+    --ok:#7fd99a;
+    --red:#d97757;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --sans:'Space Grotesk', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1000px 460px at 20% -10%, #241d16 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:0 0 60px;
+  }
+  .wrap{max-width:1200px;margin:0 auto;padding:0 20px;}
+
+  header{
+    display:flex; align-items:center; gap:18px;
+    border-bottom:1px solid var(--line);
+    padding:26px 0 22px; margin-bottom:26px;
+    background:linear-gradient(180deg, rgba(200,151,63,.06), transparent);
+  }
+  header img{
+    width:58px; height:58px; object-fit:contain;
+    filter:drop-shadow(0 0 8px rgba(200,151,63,.25));
+  }
+  header .titles h1{
+    margin:0; font-size:24px; letter-spacing:.01em; font-weight:700;
+  }
+  header .titles h1 span{color:var(--gold);}
+  header .titles p{
+    margin:4px 0 0; font-size:12.5px; color:var(--ink-dim);
+    font-family:var(--mono); letter-spacing:.06em; text-transform:uppercase;
+  }
+
+  .tabs{
+    display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px;
+  }
+  .tab{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.02em;
+    border:1px solid var(--line); background:var(--panel);
+    color:var(--ink-dim); padding:10px 14px; border-radius:7px;
+    cursor:pointer; transition:.15s ease;
+  }
+  .tab:hover{border-color:var(--gold-dim); color:var(--ink);}
+  .tab.active{
+    background:var(--gold); border-color:var(--gold); color:#1c1509; font-weight:700;
+  }
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+  @media (max-width:960px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; border-bottom:1px solid var(--line); background:var(--panel-2);
+  }
+  .panel-head h2{
+    font-size:12px; text-transform:uppercase; letter-spacing:.12em; margin:0;
+    color:var(--ink-dim); font-weight:600;
+  }
+  .panel-head button.reset{
+    font-family:var(--mono); font-size:11px; color:var(--ink-dim);
+    background:none; border:1px solid var(--line); border-radius:5px;
+    padding:5px 9px; cursor:pointer;
+  }
+  .panel-head button.reset:hover{color:var(--red); border-color:var(--red);}
+  .panel-body{padding:16px; max-height:70vh; overflow-y:auto;}
+
+  .campo{margin-bottom:16px;}
+  .campo label{
+    display:block; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:6px; font-weight:600;
+  }
+  input[type=text], textarea{
+    width:100%; background:#0f0e0d; border:1px solid var(--line); border-radius:6px;
+    color:var(--ink); font-family:var(--sans); font-size:14px; padding:9px 11px;
+    outline:none; resize:vertical;
+  }
+  textarea{min-height:78px; line-height:1.5;}
+  input[type=text]:focus, textarea:focus{border-color:var(--gold-dim);}
+
+  fieldset.repeat{
+    border:1px dashed var(--line); border-radius:8px; padding:14px; margin-bottom:16px;
+  }
+  fieldset.repeat legend{
+    font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold);
+    padding:0 6px; font-weight:700;
+  }
+  .repeat-item{
+    border:1px solid var(--line); border-radius:7px; padding:12px; margin-bottom:10px;
+    background:var(--panel-2); position:relative;
+  }
+  .repeat-item .rm{
+    position:absolute; top:8px; right:8px; background:none; border:none;
+    color:var(--ink-dim); cursor:pointer; font-size:15px; line-height:1;
+  }
+  .repeat-item .rm:hover{color:var(--red);}
+  .repeat-item .campo{margin-bottom:10px;}
+  .repeat-item .campo:last-child{margin-bottom:0;}
+  .btn-add{
+    font-family:var(--mono); font-size:12.5px; color:var(--gold);
+    background:rgba(200,151,63,.08); border:1px solid var(--gold-dim);
+    border-radius:6px; padding:8px 13px; cursor:pointer; width:100%;
+  }
+  .btn-add:hover{background:rgba(200,151,63,.16);}
+
+  #salida{min-height:230px; font-family:var(--mono); font-size:12.5px; background:#0f0e0d;}
+  .copybar{display:flex; gap:10px; margin-top:12px;}
+  button.primary, button.secondary{
+    font-family:var(--sans); font-weight:600; font-size:13.5px; border-radius:6px;
+    padding:9px 16px; cursor:pointer; transition:.15s ease;
+  }
+  button.primary{background:var(--gold); color:#1c1509; border:1px solid var(--gold);}
+  button.primary:hover{filter:brightness(1.08);}
+  button.primary.ok{background:var(--ok); border-color:var(--ok);}
+  button.secondary{background:transparent; color:var(--ink-dim); border:1px solid var(--line);}
+  button.secondary:hover{color:var(--ink); border-color:var(--gold-dim);}
+
+  .preview{border-top:1px dashed var(--line); margin-top:18px; padding-top:14px;}
+  .preview h3{font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-dim); margin:0 0 10px;}
+  #vista{
+    font-size:13.5px; line-height:1.6; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:6px; padding:14px;
+  }
+  #vista b{color:var(--gold);}
+  #vista table{border-collapse:collapse; width:100%; margin:8px 0;}
+  #vista td, #vista th{border:1px solid var(--line); padding:6px 8px; font-size:13px;}
+  #vista hr{border:none; border-top:1px solid var(--line); margin:10px 0;}
+  #vista ul{margin:6px 0; padding-left:20px;}
+  #vista details{border:1px solid var(--line); border-radius:6px; padding:6px 10px; margin:6px 0;}
+  #vista summary{cursor:pointer; color:var(--gold); font-size:12.5px;}
+
+  footer{text-align:center; color:var(--ink-dim); font-size:12px; margin-top:36px; font-family:var(--mono);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="https://i.imgur.com/VZMagQt.png" alt="Davis Detective Bureau">
+    <div class="titles">
+      <h1>Davis <span>Detective Bureau</span></h1>
+      <p>Sistema de generación de informes · BBCode</p>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="formTitle">Formulario</h2>
+        <button class="reset" id="btnReset">Reiniciar este formato</button>
+      </div>
+      <div class="panel-body" id="formulario"></div>
+    </div>
+
+    <div class="panel" style="height:fit-content;">
+      <div class="panel-head"><h2>BBCode generado</h2></div>
+      <div class="panel-body">
+        <textarea id="salida" readonly spellcheck="false"></textarea>
+        <div class="copybar">
+          <button class="primary" id="btnCopiar">Copiar BBCode</button>
+        </div>
+        <div class="preview">
+          <h3>Vista previa aproximada</h3>
+          <div id="vista"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>hecho con HTML + JS puro — sin servidor, sin cuentas, sin nada que pagar</footer>
+</div>
+
+<script>
+/* ---------- Etiquetas legibles para los campos ---------- */
+const LABELS = {
+  detective:'Detective a cargo', supervisor:'Supervisor', oficina:'Oficina', prioridad:'Prioridad',
+  fecha:'Fecha', hora:'Hora aproximada', lugar:'Ubicación', tipo:'Tipo de caso',
+  num_reporte:'Número de reporte', numero_reporte:'Número de reporte',
+  resumen:'Resumen', narrativa:'Narrativa', personas_involucradas:'Personas involucradas',
+  evidencia:'Evidencia (texto)', linea_tiempo:'Línea de tiempo', conclusion:'Conclusión',
+  notas:'Notas adicionales', archivos:'Archivos (descripción / enlaces)',
+  nombre:'Nombre', rol:'Rol', estado:'Estado', delitos:'Cargos sugeridos', texto:'Descripción',
+  hora_recepcion:'Hora de recepción del caso', hora_llegada:'Hora de llegada de detectives',
+  hora_aseguramiento:'Hora de aseguramiento de la escena', hora_inicio:'Hora de inicio de investigación',
+  analisis_detective:'Análisis del detective', conclusion_preliminar:'Conclusión preliminar',
+  notas_adicionales:'Notas adicionales', motivo_actualizacion:'Motivo de la actualización',
+  detalles_actualizacion:'Detalles de la actualización', observaciones:'Observaciones',
+  casefile:'Número de Case File', objeto_informe:'Objeto del informe', resumen_caso:'Resumen del caso',
+  analisis_investigacion:'Análisis e investigación', observaciones_finales:'Observaciones finales',
+  firma_detective:'Firma del detective (nombre / placa)'
+};
+function label(key){ return LABELS[key] || key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+
+/* ---------- Las 4 plantillas ---------- */
+const TEMPLATES = [
+{
+  id:'informe',
+  nombre:'Informe de Investigación',
+  texto:
+`[divboxwhite]
+[font=Times New Roman]
+[center][img]https://i.imgur.com/VZMagQt.png[/img][/center]
+[center][b][size=150]LOS SANTOS COUNTY SHERIFF DEPARTMENT[/size][/b][/center]
+[center][size=120]INFORME DE INVESTIGACIÓN CRIMINAL[/size][/center]
+[center][i]Case File #DVSDDMMAAAA-R-XXX[/i][/center]
+[hr]
+[font=Times New Roman]
+[table]
+[tr]
+[td][b]ESTADO:[/b] [color=green]ACTIVO[/color][/td]
+[td][b]CLASIFICACIÓN:[/b] CONFIDENCIAL[/td]
+[/tr]
+[tr]
+[td][b]DETECTIVE A CARGO:[/b] {{detective}}[/td]
+[td][b]SUPERVISOR:[/b] {{supervisor}}[/td]
+[/tr]
+[/table]
+[hr]
+[b]INFORMACIÓN GENERAL[/b]
+[indent]
+[b]Fecha del incidente:[/b] {{fecha}}
+[b]Hora aproximada:[/b] {{hora}}
+[b]Ubicación:[/b] {{lugar}}
+[b]Tipo de caso:[/b] {{tipo}}
+[b]Número de reporte:[/b] {{num_reporte}}
+[/indent]
+[hr]
+[b]RESUMEN[/b]
+[indent]
+{{resumen:area}}
+[/indent]
+[hr]
+[b]NARRATIVA DEL INCIDENTE[/b]
+[indent]
+{{narrativa:area}}
+[/indent]
+[hr]
+[b]PERSONAS INVOLUCRADAS[/b]
+[table]
+[tr]
+[th]Nombre[/th]
+[th]Rol[/th]
+[th]Estado[/th]
+[/tr]
+{{REPEAT:personas_involucradas}}[tr]
+[td]{{nombre}}[/td]
+[td]{{rol}}[/td]
+[td]{{estado}}[/td]
+[/tr]
+{{/REPEAT}}[/table]
+[hr]
+[b]EVIDENCIA RECOLECTADA[/b]
+[indent]
+[list]
+{{REPEAT:evidencia}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]LÍNEA DE TIEMPO DE LOS HECHOS[/b]
+[indent]
+{{hora_recepcion}} – Recepción del caso
+{{hora_llegada}} – Llegada de detectives
+{{hora_aseguramiento}} – Aseguramiento de la escena
+{{hora_inicio}} – Inicio de investigación
+[/indent]
+[hr]
+[b]CONCLUSIÓN[/b]
+[indent]
+{{conclusion:area}}
+[/indent]
+[hr]
+[b]NOTAS ADICIONALES[/b]
+[indent]
+{{notas:area}}
+[/indent]
+[hr]
+[b]ARCHIVOS ADJUNTOS[/b]
+[indent]
+[spoiler=Ver archivos]
+{{archivos:area}}
+[/spoiler]
+[/indent]
+[hr]
+[center][size=85][i]Documento oficial – Uso interno únicamente[/i][/size][/center]
+[/divboxwhite]`
+},
+{
+  id:'casefile',
+  nombre:'Case File',
+  texto:
+`[divboxwhite]
+[font=Times New Roman]
+[center][img]https://i.imgur.com/VZMagQt.png[/img][/center]
+[center][b][size=150]LOS SANTOS COUNTY SHERIFF DEPARTMENT[/size][/b][/center]
+[center][size=120]INFORME DE INVESTIGACIÓN CRIMINAL[/size][/center]
+[center][i]Case File #HBDDMMAAAA-XXX[/i][/center]
+[hr]
+[font=Times New Roman]
+[table]
+[tr]
+[td][b]ESTADO:[/b] [color=green]ACTIVO[/color][/td]
+[td][b]CLASIFICACIÓN:[/b] CONFIDENCIAL[/td]
+[/tr]
+[tr]
+[td][b]OFICINA:[/b] {{oficina}}[/td]
+[td][b]PRIORIDAD:[/b] {{prioridad}}[/td]
+[/tr]
+[tr]
+[td][b]DETECTIVE A CARGO:[/b] {{detective}}[/td]
+[td][b]SUPERVISOR:[/b] {{supervisor}}[/td]
+[/tr]
+[/table]
+[hr]
+[b]INFORMACIÓN GENERAL[/b]
+[indent]
+[b]Fecha del incidente:[/b] {{fecha}}
+[b]Hora aproximada:[/b] {{hora}}
+[b]Ubicación:[/b] {{lugar}}
+[b]Tipo de caso:[/b] {{tipo}}
+[b]Número de reporte:[/b] {{numero_reporte}}
+[/indent]
+[hr]
+[b]RESUMEN[/b]
+[indent]
+{{resumen:area}}
+[/indent]
+[hr]
+[b]NARRATIVA DEL CASO[/b]
+[indent]
+{{narrativa:area}}
+[/indent]
+[hr]
+[b]PERSONAS INVOLUCRADAS[/b]
+[table]
+[tr]
+[th]Nombre[/th]
+[th]Rol[/th]
+[th]Estado[/th]
+[/tr]
+{{REPEAT:personas}}[tr]
+[td]{{nombre}}[/td]
+[td]{{rol}}[/td]
+[td]{{estado}}[/td]
+[/tr]
+{{/REPEAT}}[/table]
+[hr]
+[b]EVIDENCIA RECOLECTADA[/b]
+[indent]
+[list]
+{{REPEAT:evidencia}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]LÍNEA DE TIEMPO DE LOS HECHOS[/b]
+[indent]
+{{hora_recepcion}} – Recepción del caso
+{{hora_llegada}} – Llegada de detectives
+{{hora_aseguramiento}} – Aseguramiento de la escena
+{{hora_inicio}} – Inicio de investigación
+[/indent]
+[hr]
+[b]ANÁLISIS DEL DETECTIVE[/b]
+[indent]
+{{analisis_detective:area}}
+[/indent]
+[hr]
+[b]CONCLUSIÓN PRELIMINAR[/b]
+[indent]
+{{conclusion_preliminar:area}}
+[/indent]
+[hr]
+[b]NOTAS ADICIONALES[/b]
+[indent]
+{{notas_adicionales:area}}
+[/indent]
+[hr]
+[b]ARCHIVOS ADJUNTOS[/b]
+[indent]
+[spoiler=Ver archivos]
+[list]
+{{REPEAT:archivos}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/spoiler]
+[/indent]
+[hr]
+[center][size=85][i]Documento oficial – Uso interno únicamente[/i][/size][/center]
+[/divboxwhite]`
+},
+{
+  id:'actualizacion',
+  nombre:'Actualización de Caso',
+  texto:
+`[divboxwhite]
+[font=Times New Roman]
+[center][img]https://i.imgur.com/VZMagQt.png[/img][/center]
+[center][b][size=140]ACTUALIZACIÓN DE CASO[/size][/b][/center]
+[center][i]Case File #0000[/i][/center]
+[hr]
+[table]
+[tr]
+[td][b]FECHA:[/b] {{fecha}}[/td]
+[td][b]HORA:[/b] {{hora}}[/td]
+[/tr]
+[tr]
+[td][b]DETECTIVE:[/b] {{detective}}[/td]
+[td][b]ESTADO DEL CASO:[/b] [color=green]ACTIVO[/color][/td]
+[/tr]
+[/table]
+[hr]
+[b]MOTIVO DE ACTUALIZACIÓN[/b]
+[indent]
+{{motivo_actualizacion:area}}
+[/indent]
+[hr]
+[b]DETALLES DE LA ACTUALIZACIÓN[/b]
+[indent]
+{{detalles_actualizacion:area}}
+[/indent]
+[hr]
+[b]EVIDENCIA AGREGADA[/b]
+[indent]
+[list]
+{{REPEAT:evidencia_agregada}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]CAMBIOS EN PERSONAS INVOLUCRADAS[/b]
+[indent]
+[list]
+{{REPEAT:cambios_involucrados}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]ACCIONES REALIZADAS[/b]
+[indent]
+[list]
+{{REPEAT:acciones_realizadas}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]PRÓXIMOS PASOS[/b]
+[indent]
+[list]
+{{REPEAT:proximos_pasos}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]OBSERVACIONES[/b]
+[indent]
+{{observaciones:area}}
+[/indent]
+[hr]
+[center][size=85][i]Actualización registrada en el sistema interno[/i][/size][/center]
+[/divboxwhite]`
+},
+{
+  id:'cierre',
+  nombre:'Cierre / Remisión a Fiscalía',
+  texto:
+`[divboxwhite]
+[font=Times New Roman]
+[center][img]https://i.imgur.com/VZMagQt.png[/img][/center]
+[center][b][size=150]CIERRE DE INVESTIGACIÓN[/size][/b][/center]
+[center][size=120]REMISIÓN A FISCALÍA[/size][/center]
+[center][i]Case File {{casefile}}[/i][/center]
+[hr]
+[table]
+[tr]
+[td][b]FECHA:[/b] {{fecha}}[/td]
+[td][b]HORA:[/b] {{hora}}[/td]
+[/tr]
+[tr]
+[td][b]OFICINA:[/b] {{oficina}}[/td]
+[td][b]ESTADO:[/b] [color=red]CERRADO[/color][/td]
+[/tr]
+[tr]
+[td][b]DETECTIVE A CARGO:[/b] {{detective}}[/td]
+[td][b]SUPERVISOR:[/b] {{supervisor}}[/td]
+[/tr]
+[/table]
+[hr]
+[b]DESTINATARIO[/b]
+[indent]
+Oficina del District Attorney (DAO)
+Judiciary of San Andreas (JSA)
+[/indent]
+[hr]
+[b]OBJETO DEL INFORME[/b]
+[indent]
+{{objeto_informe:area}}
+[/indent]
+[hr]
+[b]RESUMEN DEL CASO[/b]
+[indent]
+{{resumen_caso:area}}
+[/indent]
+[hr]
+[b]PERSONAS IDENTIFICADAS[/b]
+[table]
+[tr]
+[th]Nombre[/th]
+[th]Rol[/th]
+[th]Cargos sugeridos[/th]
+[/tr]
+{{REPEAT:personas}}[tr]
+[td]{{nombre}}[/td]
+[td]{{rol}}[/td]
+[td]{{delitos}}[/td]
+[/tr]
+{{/REPEAT}}[/table]
+[hr]
+[b]EVIDENCIA PRESENTADA[/b]
+[indent]
+[list]
+{{REPEAT:evidencia}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]ANÁLISIS E INVESTIGACIÓN[/b]
+[indent]
+{{analisis_investigacion:area}}
+[/indent]
+[hr]
+[b]CARGOS RECOMENDADOS[/b]
+[indent]
+[list]
+{{REPEAT:cargos_recomendados}}[*]{{texto}}
+{{/REPEAT}}[/list]
+[/indent]
+[hr]
+[b]SOLICITUD A FISCALÍA[/b]
+[indent]
+Se solicita formalmente a la Oficina del District Attorney y a Judiciary of San Andreas:
+• Evaluar la evidencia presentada
+• Emitir órdenes de arresto correspondientes
+• Proceder con la imputación formal de cargos
+• Autorizar medidas adicionales si corresponde
+[/indent]
+[hr]
+[b]OBSERVACIONES FINALES[/b]
+[indent]
+{{observaciones_finales:area}}
+[/indent]
+[hr]
+[center][b]FIRMA DEL DETECTIVE[/b][/center]
+[center]{{firma_detective}}[/center]
+[hr]
+[center][size=85][i]Documento remitido para acción judicial – Uso oficial[/i][/size][/center]
+[/divboxwhite]`
+}
+];
+
+/* ---------- Motor de plantillas ---------- */
+const REPEAT_RE = /\{\{REPEAT:([a-zA-Z0-9_]+)\}\}([\s\S]*?)\{\{\/REPEAT\}\}/g;
+const FIELD_RE = /\{\{\s*([a-zA-Z0-9_]+)(:area)?\s*\}\}/g;
+
+function parseSchema(texto){
+  const schema = [];
+  let lastIndex = 0, m;
+  REPEAT_RE.lastIndex = 0;
+  while((m = REPEAT_RE.exec(texto)) !== null){
+    extractFields(texto.slice(lastIndex, m.index), schema);
+    const key = m[1], inner = m[2];
+    const subfields = [], seen = new Set();
+    let sm; const subRe = new RegExp(FIELD_RE.source, 'g');
+    while((sm = subRe.exec(inner)) !== null){
+      if(!seen.has(sm[1])){ seen.add(sm[1]); subfields.push({key:sm[1], area: !!sm[2]}); }
+    }
+    schema.push({type:'repeat', key, subfields});
+    lastIndex = REPEAT_RE.lastIndex;
+  }
+  extractFields(texto.slice(lastIndex), schema);
+  return schema;
+}
+function extractFields(str, schema){
+  const re = new RegExp(FIELD_RE.source, 'g');
+  let m;
+  while((m = re.exec(str)) !== null){
+    schema.push({type:'field', key:m[1], area: !!m[2]});
+  }
+}
+function render(texto, data){
+  let out = texto.replace(REPEAT_RE, (full, key, inner) => {
+    const items = data[key] || [];
+    if(items.length === 0) return '';
+    return items.map(item => inner.replace(FIELD_RE, (m2, fk) => item[fk] || '')).join('\n');
+  });
+  out = out.replace(FIELD_RE, (m, fk) => (typeof data[fk] === 'string' ? data[fk] : ''));
+  return out;
+}
+
+/* ---------- Estado ---------- */
+TEMPLATES.forEach(t => t.schema = parseSchema(t.texto));
+const state = {};
+function defaultData(schema){
+  const d = {};
+  schema.forEach(item => {
+    if(item.type === 'field') d[item.key] = '';
+    else {
+      const blank = {}; item.subfields.forEach(sf => blank[sf.key] = '');
+      d[item.key] = [blank];
+    }
+  });
+  return d;
+}
+TEMPLATES.forEach(t => state[t.id] = defaultData(t.schema));
+
+let activeId = TEMPLATES[0].id;
+
+/* ---------- UI: pestañas ---------- */
+const tabsEl = document.getElementById('tabs');
+TEMPLATES.forEach(t => {
+  const b = document.createElement('button');
+  b.className = 'tab' + (t.id === activeId ? ' active' : '');
+  b.textContent = t.nombre;
+  b.addEventListener('click', () => { activeId = t.id; renderAll(); });
+  b.dataset.id = t.id;
+  tabsEl.appendChild(b);
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  const t = TEMPLATES.find(x => x.id === activeId);
+  state[activeId] = defaultData(t.schema);
+  renderAll();
+});
+
+const formEl = document.getElementById('formulario');
+const salidaEl = document.getElementById('salida');
+const vistaEl = document.getElementById('vista');
+const formTitleEl = document.getElementById('formTitle');
+
+function renderAll(){
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.id === activeId));
+  const t = TEMPLATES.find(x => x.id === activeId);
+  formTitleEl.textContent = t.nombre;
+  buildForm(t);
+  updateOutput();
+}
+
+function buildForm(t){
+  formEl.innerHTML = '';
+  const data = state[t.id];
+  t.schema.forEach(item => {
+    if(item.type === 'field'){
+      formEl.appendChild(buildFieldEl(item, data[item.key], val => { data[item.key] = val; updateOutput(); }));
+    } else {
+      formEl.appendChild(buildRepeatEl(item, data));
+    }
+  });
+}
+
+function buildFieldEl(item, value, onChange){
+  const wrap = document.createElement('div');
+  wrap.className = 'campo';
+  const lab = document.createElement('label');
+  lab.textContent = label(item.key);
+  wrap.appendChild(lab);
+  const input = document.createElement(item.area ? 'textarea' : 'input');
+  if(!item.area) input.type = 'text';
+  input.value = value || '';
+  input.addEventListener('input', () => onChange(input.value));
+  wrap.appendChild(input);
+  return wrap;
+}
+
+function buildRepeatEl(item, data){
+  const fs = document.createElement('fieldset');
+  fs.className = 'repeat';
+  const legend = document.createElement('legend');
+  legend.textContent = label(item.key);
+  fs.appendChild(legend);
+
+  const itemsWrap = document.createElement('div');
+  fs.appendChild(itemsWrap);
+
+  function redrawItems(){
+    itemsWrap.innerHTML = '';
+    data[item.key].forEach((entry, idx) => {
+      const box = document.createElement('div');
+      box.className = 'repeat-item';
+      if(data[item.key].length > 1){
+        const rm = document.createElement('button');
+        rm.className = 'rm'; rm.type = 'button'; rm.textContent = '✕';
+        rm.title = 'Quitar';
+        rm.addEventListener('click', () => { data[item.key].splice(idx,1); redrawItems(); updateOutput(); });
+        box.appendChild(rm);
+      }
+      item.subfields.forEach(sf => {
+        box.appendChild(buildFieldEl(sf, entry[sf.key], val => { entry[sf.key] = val; updateOutput(); }));
+      });
+      itemsWrap.appendChild(box);
+    });
+  }
+  redrawItems();
+
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button'; addBtn.className = 'btn-add';
+  addBtn.textContent = '+ Añadir ' + label(item.key).toLowerCase();
+  addBtn.addEventListener('click', () => {
+    const blank = {}; item.subfields.forEach(sf => blank[sf.key] = '');
+    data[item.key].push(blank);
+    redrawItems(); updateOutput();
+  });
+  fs.appendChild(addBtn);
+  return fs;
+}
+
+function updateOutput(){
+  const t = TEMPLATES.find(x => x.id === activeId);
+  const texto = render(t.texto, state[t.id]);
+  salidaEl.value = texto;
+  renderPreview(texto);
+}
+
+/* ---------- Vista previa aproximada ---------- */
+function renderPreview(bbcode){
+  let html = bbcode.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  html = html
+    .replace(/\[divboxwhite\]/gi,'<div style="border:1px solid var(--line);border-radius:6px;padding:10px;">')
+    .replace(/\[\/divboxwhite\]/gi,'</div>')
+    .replace(/\[font=[^\]]*\]/gi,'').replace(/\[\/font\]/gi,'')
+    .replace(/\[spoiler=([^\]]*)\]/gi,'<details><summary>$1</summary>')
+    .replace(/\[\/spoiler\]/gi,'</details>')
+    .replace(/\[table\]/gi,'<table>').replace(/\[\/table\]/gi,'</table>')
+    .replace(/\[tr\]/gi,'<tr>').replace(/\[\/tr\]/gi,'</tr>')
+    .replace(/\[th\]/gi,'<th>').replace(/\[\/th\]/gi,'</th>')
+    .replace(/\[td\]/gi,'<td>').replace(/\[\/td\]/gi,'</td>')
+    .replace(/\[list\]/gi,'<ul>').replace(/\[\/list\]/gi,'</ul>')
+    .replace(/^\[\*\](.*)$/gim,'<li>$1</li>')
+    .replace(/\[indent\]/gi,'<div style="margin-left:18px">').replace(/\[\/indent\]/gi,'</div>')
+    .replace(/\[center\]([\s\S]*?)\[\/center\]/gi,'<div style="text-align:center">$1</div>')
+    .replace(/\[size=\d+\]([\s\S]*?)\[\/size\]/gi,'<span style="font-size:1.15em">$1</span>')
+    .replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/gi,'<span style="color:$1">$2</span>')
+    .replace(/\[b\]([\s\S]*?)\[\/b\]/gi,'<b>$1</b>')
+    .replace(/\[i\]([\s\S]*?)\[\/i\]/gi,'<i>$1</i>')
+    .replace(/\[hr\]/gi,'<hr>')
+    .replace(/\[img\]([\s\S]*?)\[\/img\]/gi,'<img src="$1" style="max-width:100%;border-radius:4px" alt="">')
+    .replace(/\n/g,'<br>');
+  vistaEl.innerHTML = html;
+}
+
+/* ---------- Copiar ---------- */
+document.getElementById('btnCopiar').addEventListener('click', async () => {
+  const btn = document.getElementById('btnCopiar');
+  try{
+    await navigator.clipboard.writeText(salidaEl.value);
+  }catch(e){
+    salidaEl.select(); document.execCommand('copy');
+  }
+  btn.textContent = '¡Copiado!'; btn.classList.add('ok');
+  setTimeout(() => { btn.textContent = 'Copiar BBCode'; btn.classList.remove('ok'); }, 1400);
+});
+
+renderAll();
+</script>
+</body>
+</html>
